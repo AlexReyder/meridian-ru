@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
@@ -8,6 +8,7 @@ import {
   proposalUploadSchema,
   proposalWizardSchema,
 } from '@/lib/validation/proposal-request'
+
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -217,6 +218,9 @@ export async function POST(req: Request) {
         },
       })
 
+   after(async () => {
+    try{
+
       const uploadedFileDocs = []
       const emailAttachments: EmailAttachment[] = []
 
@@ -265,6 +269,10 @@ export async function POST(req: Request) {
       } catch (emailError) {
         console.error('Proposal wizard email error:', emailError)
       }
+    } catch(backgroundError){
+        console.error('Proposal wizard background processing error:', backgroundError)
+    }
+  })
 
       return NextResponse.json({
         ok: true,
@@ -306,6 +314,8 @@ export async function POST(req: Request) {
         },
       })
 
+      after(async () => {
+        try {
       const uploadedFileDocs = []
       const emailAttachments: EmailAttachment[] = []
 
@@ -364,6 +374,10 @@ export async function POST(req: Request) {
       } catch (emailError) {
         console.error('Proposal upload email error:', emailError)
       }
+    } catch (backgroundError) {
+          console.error('Proposal upload background processing error:', backgroundError)
+        }
+      })
 
       return NextResponse.json({
         ok: true,
