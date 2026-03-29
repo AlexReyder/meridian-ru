@@ -1,0 +1,582 @@
+*** Begin Patch
+*** Update File: payload.config.ts
+@@
+   db: postgresAdapter({
+     pool: {
+       connectionString: process.env.DATABASE_URL || '',
+     },
+-     push: true,
++     push: false,
+   }),
+@@
+   localization: {
+-    locales: ['ru', 'en', 'ar'],
++    locales: ['ru'],
+     defaultLocale: 'ru',
+     fallback: false,
+   },
+*** Update File: lib/routes.ts
+@@
+-export type Locale = 'ru' | 'en' | 'ar'
++export type Locale = 'ru'
+ export type PageKey =
+   | 'home'
+   | 'solutions'
+@@
+-export const DEFAULT_LOCALE: Locale = 'ru'
+-export const RTL_LOCALES: Locale[] = ['ar']
+-export const LOCALES: Locale[] = ['ru', 'en', 'ar']
++export type LanguageSwitcherItem = {
++  code: string
++  label: string
++  locale: Locale
++  href: string
++}
++
++export const DEFAULT_LOCALE: Locale = 'ru'
++export const RTL_LOCALES: Locale[] = []
++export const LOCALES: Locale[] = ['ru']
++const LEGACY_LOCALE_PREFIXES = ['ru', 'en', 'ar'] as const
+@@
+-const ROUTE_MAP: Record<PageKey, Record<Locale, string[]>> = {
+-  home: {
+-    ru: [],
+-    en: ['en'],
+-    ar: ['ar'],
+-  },
+-  solutions: {
+-    ru: ['solutions'],
+-    en: ['en', 'solutions'],
+-    ar: ['ar', 'solutions'],
+-  },
+-  pricing: {
+-    ru: ['pricing'],
+-    en: ['en', 'pricing'],
+-    ar: ['ar', 'pricing'],
+-  },
+-  'get-proposal': {
+-    ru: ['get-proposal'],
+-    en: ['en', 'get-proposal'],
+-    ar: ['ar', 'get-proposal'],
+-  },
+-  concepts: {
+-    ru: ['concepts'],
+-    en: ['en', 'concepts'],
+-    ar: ['ar', 'concepts'],
+-  },
+-  'for-startups': {
+-    ru: ['for-startups'],
+-    en: ['en', 'for-startups'],
+-    ar: ['ar', 'for-startups'],
+-  },
+-  'for-partners': {
+-    ru: ['for-agencies'],
+-    en: ['en', 'for-partners'],
+-    ar: ['ar', 'for-partners'],
+-  },
+-  method: {
+-    ru: ['method'],
+-    en: ['en', 'how-we-work'],
+-    ar: ['ar', 'how-we-work'],
+-  },
+-}
+-
+-export function isRTL(locale: Locale) {
+-  return RTL_LOCALES.includes(locale)
+-}
+-
+-export function getLocaleDirection(locale: Locale) {
+-  return isRTL(locale) ? 'rtl' : 'ltr'
+-}
+-
+-export function getHrefForPageKey(pageKey: PageKey, locale: Locale): string {
+-  const segments = ROUTE_MAP[pageKey][locale]
++const ROUTE_MAP: Record<PageKey, string[]> = {
++  home: [],
++  solutions: ['solutions'],
++  pricing: ['pricing'],
++  'get-proposal': ['get-proposal'],
++  concepts: ['concepts'],
++  'for-startups': ['for-startups'],
++  'for-partners': ['for-agencies'],
++  method: ['method'],
++}
++
++export function isRTL(_locale: Locale) {
++  return false
++}
++
++export function getLocaleDirection(_locale: Locale) {
++  return 'ltr' as const
++}
++
++export function getHrefForPageKey(
++  pageKey: PageKey,
++  _locale: Locale = DEFAULT_LOCALE,
++): string {
++  const segments = ROUTE_MAP[pageKey]
+   return segments.length ? `/${segments.join('/')}` : '/'
+ }
+@@
+ export function resolveLocaleAndPageKey(
+   segments?: string[],
+ ): {
+   locale: Locale
+   pageKey: PageKey
+ } | null {
+-  const normalized = segments ?? []
+-
+-  for (const [pageKey, routesByLocale] of Object.entries(ROUTE_MAP) as Array<
+-    [PageKey, Record<Locale, string[]>]
+-  >) {
+-    for (const locale of Object.keys(routesByLocale) as Locale[]) {
+-      const candidate = routesByLocale[locale]
+-
+-      for (const variant of getRouteCandidates(locale, candidate)) {
+-        if (
+-          variant.length === normalized.length &&
+-          variant.every((part, index) => part === normalized[index])
+-        ) {
+-          return { locale, pageKey }
+-        }
+-      }
++  const normalized = stripLocalePrefix(segments)
++
++  for (const [pageKey, candidate] of Object.entries(ROUTE_MAP) as Array<
++    [PageKey, string[]]
++  >) {
++    if (
++      candidate.length === normalized.length &&
++      candidate.every((part, index) => part === normalized[index])
++    ) {
++      return { locale: DEFAULT_LOCALE, pageKey }
+     }
+   }
+
+   return null
+ }
+-
+-function getRouteCandidates(locale: Locale, candidate: string[]) {
+-  if (locale !== 'ru') {
+-    return [candidate]
+-  }
+-
+-  return [candidate, ['ru', ...candidate]]
+-}
+-
+-export function getLanguageSwitcher(pageKey: PageKey) {
+-  return [
+-    {
+-      code: 'RU',
+-      label: 'Русский',
+-      locale: 'ru' as const,
+-      href: getHrefForPageKey(pageKey, 'ru'),
+-    },
+-    {
+-      code: 'EN',
+-      label: 'English',
+-      locale: 'en' as const,
+-      href: getHrefForPageKey(pageKey, 'en'),
+-    },
+-    {
+-      code: 'AR',
+-      label: 'العربية',
+-      locale: 'ar' as const,
+-      href: getHrefForPageKey(pageKey, 'ar'),
+-    },
+-  ]
+-}
+-
+-export function getLocaleFromSegments(segments?: string[]): Locale {
+-  const first = segments?.[0]
+-
+-  if (first === 'ru' || first === 'en' || first === 'ar') {
+-    return first
+-  }
+-
+-  return DEFAULT_LOCALE
+-}
+-
+-
+-export function stripLocalePrefix(segments?: string[]) {
++
++export function getLanguageSwitcher(_pageKey: PageKey): LanguageSwitcherItem[] {
++  return []
++}
++
++export function getLocaleFromSegments(_segments?: string[]): Locale {
++  return DEFAULT_LOCALE
++}
++
++export function stripLocalePrefix(segments?: string[]) {
+   const normalized = segments ?? []
+
+-  if (
+-    normalized[0] === 'ru' ||
+-    normalized[0] === 'en' ||
+-    normalized[0] === 'ar'
+-  ) {
++  if (normalized[0] === 'ru') {
+     return normalized.slice(1)
+   }
+
+@@
+ export function buildHrefFromSlug(slug: string, locale: Locale) {
+   const normalized = normalizeSlug(slug)
+
+   if (!normalized) {
+     return getHrefForPageKey('home', locale)
+   }
+
+-  return locale === DEFAULT_LOCALE
+-    ? `/${normalized}`
+-    : `/${locale}/${normalized}`
++  return `/${normalized}`
++}
++
++export function isLegacyLocaleHomeHref(href?: string | null) {
++  if (!href) return false
++
++  const normalized = href.trim().replace(/\/$/, '') || '/'
++
++  if (normalized === '/') return true
++
++  return LEGACY_LOCALE_PREFIXES.some((locale) => normalized === `/${locale}`)
+ }
+*** Update File: collections/Pages.ts
+@@
+ function normalizeLocale(locale?: string | null): Locale | null {
+-  return locale === 'ru' || locale === 'en' || locale === 'ar' ? locale : null
++  return LOCALES.includes(locale as Locale) ? (locale as Locale) : null
+ }
+*** Update File: app/(frontend)/[[...segments]]/page.tsx
+@@
+ import {
+   LOCALES,
+   PAGE_KEYS,
+   buildHrefFromSlug,
+@@
+   normalizeSlug,
+   resolveLocaleAndPageKey,
+   stripLocalePrefix,
++  type Locale,
+   type PageKey,
+ } from '@/lib/routes'
+@@
+-function getHrefVariants(href: string, locale: 'ru' | 'en' | 'ar') {
+-  if (locale !== 'ru') {
+-    return [href]
+-  }
+-
++function getHrefVariants(href: string, _locale: Locale) {
+   if (href === '/') {
+     return ['/', '/ru']
+   }
+@@
+ export async function generateStaticParams() {
+   const payload = await getPayloadClient()
+   const params: Array<{ segments?: string[] }> = []
+   const seen = new Set<string>()
+
+   for (const pageKey of PAGE_KEYS as PageKey[]) {
+-  for (const locale of LOCALES) {
+-    const href = getHrefForPageKey(pageKey, locale)
+-
+-    for (const variant of getHrefVariants(href, locale)) {
+-      if (seen.has(variant)) continue
+-      seen.add(variant)
+-
+-      params.push({
+-        segments: segmentsFromHref(variant),
+-      })
++    for (const locale of LOCALES) {
++      const href = getHrefForPageKey(pageKey, locale)
++
++      for (const variant of getHrefVariants(href, locale)) {
++        if (seen.has(variant)) continue
++        seen.add(variant)
++
++        params.push({
++          segments: segmentsFromHref(variant),
++        })
++      }
+     }
+   }
+-}
+
+- for (const locale of LOCALES) {
+-  const customPages = await payload.find({
+-    collection: 'pages',
+-    where: {
+-      routeType: {
+-        equals: 'custom',
++  for (const locale of LOCALES) {
++    const customPages = await payload.find({
++      collection: 'pages',
++      where: {
++        routeType: {
++          equals: 'custom',
++        },
+       },
+-    },
+-    limit: 1000,
+-    locale,
+-    fallbackLocale: 'none',
+-    depth: 0,
+-  })
+-
+-  for (const page of customPages.docs) {
+-    const slug =
+-      typeof page.slug === 'string' ? normalizeSlug(page.slug) : ''
+-
+-    if (!slug) continue
+-
+-    const href = buildHrefFromSlug(slug, locale)
+-
+-    for (const variant of getHrefVariants(href, locale)) {
+-      if (seen.has(variant)) continue
+-      seen.add(variant)
+-
+-      params.push({
+-        segments: segmentsFromHref(variant),
+-      })
+-    }
++      limit: 1000,
++      locale,
++      fallbackLocale: 'none',
++      depth: 0,
++    })
++
++    for (const page of customPages.docs) {
++      const slug =
++        typeof page.slug === 'string' ? normalizeSlug(page.slug) : ''
++
++      if (!slug) continue
++
++      const href = buildHrefFromSlug(slug, locale)
++
++      for (const variant of getHrefVariants(href, locale)) {
++        if (seen.has(variant)) continue
++        seen.add(variant)
++
++        params.push({
++          segments: segmentsFromHref(variant),
++        })
++      }
++    }
+   }
+-}
+
+   return params
+ }
+*** Update File: components/site/Header.tsx
+@@
+ import {
+-  DEFAULT_LOCALE,
+   getHrefForPageKey,
+   getLanguageSwitcher,
+   type Locale,
+@@
+   const isRTL = dir === 'rtl'
+   const brandHref = getHrefForPageKey('home', locale)
+   const ctaHref = getHrefForPageKey('get-proposal', locale)
+- const currentLangCode = locale.toUpperCase()
+-const languages = pageKey ? getLanguageSwitcher(pageKey) : []
+-
+-const navItems = (data?.navigation ?? []).filter(
+-  (item): item is Required<HeaderNavItem> =>
+-    Boolean(item?.label && item?.pageKey),
+-)
+-
+-const isActive = (targetPageKey: PageKey) => {
+-  if (!mounted || !pageKey) return false
+-  return pageKey === targetPageKey
+-}
++  const currentLangCode = locale.toUpperCase()
++  const languages = pageKey ? getLanguageSwitcher(pageKey) : []
++  const hasLanguageSwitcher = languages.length > 0
++
++  const navItems = (data?.navigation ?? []).filter(
++    (item): item is Required<HeaderNavItem> =>
++      Boolean(item?.label && item?.pageKey),
++  )
++
++  const isActive = (targetPageKey: PageKey) => {
++    if (!mounted || !pageKey) return false
++    return pageKey === targetPageKey
++  }
+@@
+-            <div className="relative hidden md:block">
+-              <button
+-                type="button"
+-                onClick={(e) => {
+-                  e.stopPropagation()
+-                  setIsLangOpen((prev) => !prev)
+-                }}
+-                className="flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+-              >
+-                <Globe className="h-3.5 w-3.5" />
+-                <span>{currentLangCode}</span>
+-                <ChevronDown
+-                  className={`h-3 w-3 transition-transform duration-200 ${isLangOpen ? 'rotate-180' : ''}`}
+-                />
+-              </button>
+-
+-              {isLangOpen && (
+-                <div
+-                  className={`absolute top-full mt-2 z-50 min-w-[140px] rounded-sm border border-border bg-card py-1 shadow-lg ${
+-                    isRTL ? 'left-0' : 'right-0'
+-                  }`}
+-                  onClick={(e) => e.stopPropagation()}
+-                >
+-                  {languages.map((lang) => (
+-                    <Link
+-                      key={lang.locale}
+-                      href={lang.href}
+-                      onClick={() => setIsLangOpen(false)}
+-                      className={`flex items-center justify-between px-4 py-2 text-sm transition-colors ${
+-                        lang.locale === locale
+-                          ? 'bg-secondary/50 text-foreground'
+-                          : 'text-muted-foreground hover:bg-secondary/30 hover:text-foreground'
+-                      }`}
+-                    >
+-                      <span>{lang.label}</span>
+-                      <span className="text-xs text-muted-foreground">{lang.locale.toUpperCase()}</span>
+-                    </Link>
+-                  ))}
+-                </div>
+-              )}
+-            </div>
++            {hasLanguageSwitcher ? (
++              <div className="relative hidden md:block">
++                <button
++                  type="button"
++                  onClick={(e) => {
++                    e.stopPropagation()
++                    setIsLangOpen((prev) => !prev)
++                  }}
++                  className="flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
++                >
++                  <Globe className="h-3.5 w-3.5" />
++                  <span>{currentLangCode}</span>
++                  <ChevronDown
++                    className={`h-3 w-3 transition-transform duration-200 ${isLangOpen ? 'rotate-180' : ''}`}
++                  />
++                </button>
++
++                {isLangOpen && (
++                  <div
++                    className={`absolute top-full mt-2 z-50 min-w-[140px] rounded-sm border border-border bg-card py-1 shadow-lg ${
++                      isRTL ? 'left-0' : 'right-0'
++                    }`}
++                    onClick={(e) => e.stopPropagation()}
++                  >
++                    {languages.map((lang) => (
++                      <Link
++                        key={lang.locale}
++                        href={lang.href}
++                        onClick={() => setIsLangOpen(false)}
++                        className={`flex items-center justify-between px-4 py-2 text-sm transition-colors ${
++                          lang.locale === locale
++                            ? 'bg-secondary/50 text-foreground'
++                            : 'text-muted-foreground hover:bg-secondary/30 hover:text-foreground'
++                        }`}
++                      >
++                        <span>{lang.label}</span>
++                        <span className="text-xs text-muted-foreground">{lang.locale.toUpperCase()}</span>
++                      </Link>
++                    ))}
++                  </div>
++                )}
++              </div>
++            ) : null}
+@@
+-            <div className="border-t border-border pt-4">
+-              <p className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">
+-                {data?.mobileLanguageLabel || 'Language'}
+-              </p>
+-
+-              <div className="flex gap-3">
+-                {languages.map((lang) => (
+-                  <Link
+-                    key={`mobile-lang-${lang.locale}`}
+-                    href={lang.href}
+-                    onClick={() => setIsMenuOpen(false)}
+-                    className={`rounded-sm border px-3 py-1.5 text-sm transition-colors ${
+-                      lang.locale === locale
+-                        ? 'border-foreground text-foreground'
+-                        : 'border-border text-muted-foreground hover:border-foreground/50'
+-                    }`}
+-                  >
+-                    {lang.locale.toUpperCase()}
+-                  </Link>
+-                ))}
+-              </div>
+-            </div>
++            {hasLanguageSwitcher ? (
++              <div className="border-t border-border pt-4">
++                <p className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">
++                  {data?.mobileLanguageLabel || 'Language'}
++                </p>
++
++                <div className="flex gap-3">
++                  {languages.map((lang) => (
++                    <Link
++                      key={`mobile-lang-${lang.locale}`}
++                      href={lang.href}
++                      onClick={() => setIsMenuOpen(false)}
++                      className={`rounded-sm border px-3 py-1.5 text-sm transition-colors ${
++                        lang.locale === locale
++                          ? 'border-foreground text-foreground'
++                          : 'border-border text-muted-foreground hover:border-foreground/50'
++                      }`}
++                    >
++                      {lang.locale.toUpperCase()}
++                    </Link>
++                  ))}
++                </div>
++              </div>
++            ) : null}
+*** Update File: components/site/Footer.tsx
+@@
+ import {
++  LOCALES,
+   getHrefForPageKey,
++  isLegacyLocaleHomeHref,
+   type Locale,
+   type PageKey,
+ } from '@/lib/routes'
+@@
+ function renderBottomText(template?: string | null) {
+   if (!template) return ''
+   return template.replace('{year}', String(new Date().getFullYear()))
+ }
++
++function isLanguageSwitcherColumn(column?: FooterColumn | null) {
++  const links = column?.links ?? []
++
++  if (!links.length) return false
++
++  return links.every((link) => isLegacyLocaleHomeHref(link.href))
++}
+
+ export function SiteFooter({ data, locale, dir = 'ltr' }: Props) {
+   const isRTL = dir === 'rtl'
+   const variant = data?.variant || 'light'
+   const brandHref = getHrefForPageKey('home', locale)
++  const columns = (data?.columns ?? []).filter((column) => {
++    if (LOCALES.length > 1) return true
++    return !isLanguageSwitcherColumn(column)
++  })
+
+   if (variant === 'dark') {
+-    const columns = data?.columns ?? []
+-
+     return (
+       <footer dir={dir} className="bg-foreground text-background">
+@@
+-  const columns = data?.columns ?? []
+-
+   return (
+     <footer dir={dir} className="border-t border-border/40 bg-background">
+*** End Patch
