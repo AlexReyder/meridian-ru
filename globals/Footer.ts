@@ -1,6 +1,7 @@
 import type { Field, GlobalConfig } from 'payload'
 
 import { PAGE_KEY_OPTIONS } from '@/lib/routes'
+import { revalidateAllPages } from '@/lib/revalidate'
 
 const linkFields = [
   {
@@ -33,6 +34,13 @@ const linkFields = [
 export const Footer: GlobalConfig = {
   slug: 'footer',
   label: 'Подвал сайта',
+   hooks: {
+    afterChange: [
+      async ({ req }) => {
+        await revalidateAllPages(req.payload)
+      },
+    ],
+  },
   access: {
     read: () => true,
   },

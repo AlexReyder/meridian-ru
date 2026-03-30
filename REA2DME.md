@@ -78,3 +78,5 @@ This is the initial scaffold for the Payload CMS rewrite.
 3. Finish Home page completely.
 4. Repeat per page using controlled blocks, not a free-form builder.
 
+Изменить шапку - добавить лого
+Сделать возможность меня шапку и подвал в Payload

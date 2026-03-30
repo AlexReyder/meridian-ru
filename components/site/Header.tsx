@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 
+import { getMediaAlt, getMediaUrl } from '@/lib/media'
 import {
   getHrefForPageKey,
   type Locale,
@@ -15,7 +17,20 @@ type HeaderNavItem = {
   pageKey?: PageKey | null
 }
 
+type HeaderLogo = {
+  url?: string | null
+  alt?: string | null
+  width?: number | null
+  height?: number | null
+  thumbnailURL?: string | null
+  sizes?: {
+    medium?: { url?: string | null } | null
+    large?: { url?: string | null } | null
+  } | null
+}
+
 type HeaderData = {
+  logo?: HeaderLogo | number | null
   brandName?: string | null
   brandTagline?: string | null
   navigation?: HeaderNavItem[] | null
@@ -30,37 +45,50 @@ type Props = {
   pageKey?: PageKey
   dir?: 'ltr' | 'rtl'
 }
-
 export function SiteHeader({
   data,
   locale,
   pageKey,
   dir = 'ltr',
 }: Props) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const isRTL = dir === 'rtl'
   const brandHref = getHrefForPageKey('home', locale)
   const ctaHref = getHrefForPageKey('get-proposal', locale)
 
- const navItems = (data?.navigation ?? []).filter(
-  (
-    item,
-  ): item is {
-    label: string
-    pageKey: PageKey
-  } => Boolean(item?.label && item?.pageKey),
-)
+  const navItems = (data?.navigation ?? []).filter(
+    (item): item is { label: string; pageKey: PageKey } =>
+      Boolean(item?.label && item?.pageKey),
+  )
 
   const isActive = (targetPageKey: PageKey) => {
     if (!mounted || !pageKey) return false
     return pageKey === targetPageKey
   }
+
+  const logoUrl = getMediaUrl(data?.logo)
+  const logoAlt = getMediaAlt(data?.logo, data?.brandName || 'Atelier Meridian')
+
+  const logoWidth =
+    data?.logo &&
+    typeof data.logo === 'object' &&
+    'width' in data.logo &&
+    typeof data.logo.width === 'number'
+      ? data.logo.width
+      : 458
+
+  const logoHeight =
+    data?.logo &&
+    typeof data.logo === 'object' &&
+    'height' in data.logo &&
+    typeof data.logo.height === 'number'
+      ? data.logo.height
+      : 82
 
   return (
     <header
@@ -70,25 +98,30 @@ export function SiteHeader({
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href={brandHref} className="flex items-center gap-3">
-              <div className="flex flex-col gap-0.5">
-                <div className="h-2 w-[3px] rounded-full bg-signature-cobalt" />
-                <div className="h-1.5 w-[3px] rounded-full bg-signature-brass" />
-              </div>
-
-              <div className="flex flex-col">
-                <span className="font-serif text-lg font-medium tracking-tight text-foreground">
-                  {data?.brandName || 'Atelier Meridian'}
-                </span>
-                <span
-                  className={`text-[10px] uppercase text-muted-foreground ${
-                    isRTL ? 'tracking-[0.15em]' : 'tracking-[0.2em]'
-                  }`}
-                >
-                  {data?.brandTagline || 'Product Architecture & Interface Studio'}
-                </span>
-              </div>
-            </Link>
+          <Link
+  href={brandHref}
+  className="flex min-w-0 shrink-0 items-center max-w-[180px] sm:max-w-[220px] lg:max-w-[280px]"
+>
+  {logoUrl ? (
+    <Image
+      src={logoUrl}
+      alt={logoAlt}
+      width={logoWidth}
+      height={logoHeight}
+      priority
+      className="block h-auto max-h-[40px] w-auto max-w-full object-contain sm:max-h-[48px] lg:max-h-[56px]"
+    />
+  ) : (
+    <div className="flex min-w-0 flex-col">
+      <span className="text-[20px] leading-none tracking-[-0.02em] text-foreground">
+        {data?.brandName || 'Atelier Meridian'}
+      </span>
+      <span className="mt-2 text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
+        {data?.brandTagline || 'Product Architecture & Interface Studio'}
+      </span>
+    </div>
+  )}
+</Link>
           </div>
 
           <nav className="hidden items-center gap-8 lg:flex">

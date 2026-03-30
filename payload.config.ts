@@ -24,10 +24,8 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     importMap: {
-      // baseDir: path.resolve(dirname),
-       baseDir: path.resolve(dirname), // или путь к вашей папке с админкой
-      importMapFile: './app/(payload)/importMap.ts', // УКАЖИТЕ .ts ЗДЕСЬ
-    //  baseDir: path.resolve(dirname, 'src/app/(payload)'),
+       baseDir: path.resolve(dirname), 
+      importMapFile: './app/(payload)/importMap.ts', 
     },
   },
     email: nodemailerAdapter({

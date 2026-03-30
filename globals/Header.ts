@@ -1,10 +1,17 @@
 import type { GlobalConfig } from 'payload'
-
 import { PAGE_KEY_OPTIONS } from '@/lib/routes'
+import { revalidateAllPages } from '@/lib/revalidate'
 
 export const Header: GlobalConfig = {
   slug: 'header',
   label: 'Шапка сайта',
+   hooks: {
+    afterChange: [
+      async ({ req }) => {
+        await revalidateAllPages(req.payload)
+      },
+    ],
+  },
   access: {
     read: () => true,
   },
@@ -12,6 +19,14 @@ export const Header: GlobalConfig = {
     group: 'Глобальные настройки',
   },
   fields: [
+    {
+      name: 'logo',
+      label: 'Логотип',
+      type: 'upload',
+      relationTo: 'media',
+      localized: true,
+      required: false,
+    },
     {
       name: 'brandName',
       label: 'Название бренда',

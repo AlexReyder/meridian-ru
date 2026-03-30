@@ -1,5 +1,4 @@
 import { getPayloadClient } from '@/lib/payload'
-
 import { type Locale } from '@/lib/routes'
 
 export async function getHeader(locale: Locale) {
@@ -8,6 +7,7 @@ export async function getHeader(locale: Locale) {
   const header = await payload.findGlobal({
     slug: 'header',
     locale,
+    depth: 1,
   })
 
   return header

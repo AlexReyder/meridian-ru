@@ -11,6 +11,7 @@ import {
   type Locale,
   type PageKey,
 } from '../lib/routes'
+import { getDocPaths, revalidatePaths } from '@/lib/revalidate'
 import { ValueHomeBlock } from '@/blocks/home/ValueHomeBlock'
 import { VideoWalkthroughHomeBlock } from '@/blocks/home/VideoWalkThroughHome'
 import { DeliverablesHomeBlock } from '@/blocks/home/DeliverablesHomeBlock'
@@ -83,66 +84,7 @@ function normalizeLocale(locale?: string | null): Locale | null {
   return LOCALES.includes(locale as Locale) ? (locale as Locale) : null
 }
 
-function getDocPaths(
-  doc:
-    | {
-        routeType?: string | null
-        pageKey?: string | null
-        slug?: string | null
-      }
-    | undefined,
-  locale: Locale | null,
-) {
-  if (!doc) return []
 
-  const routeType = doc.routeType ?? (doc.pageKey ? 'system' : 'custom')
-
-  if (routeType === 'custom') {
-    const slug = typeof doc.slug === 'string' ? normalizeSlug(doc.slug) : ''
-
-    if (!slug) return []
-
-    return [buildHrefFromSlug(slug, locale ?? DEFAULT_LOCALE)]
-  }
-
-  if (!doc.pageKey) return []
-
-  if (locale) {
-    return [getHrefForPageKey(doc.pageKey as PageKey, locale)]
-  }
-
-  return LOCALES.map((item) =>
-    getHrefForPageKey(doc.pageKey as PageKey, item),
-  )
-}
-
-async function revalidatePaths(paths: string[]) {
-  const uniquePaths = Array.from(new Set(paths.filter(Boolean)))
-
-  if (!uniquePaths.length) return
-
-  const secret = process.env.REVALIDATE_SECRET
-  if (!secret) return
-
-  const baseURL = process.env.APP_URL || 'http://localhost:3000'
-
-  try {
-    const response = await fetch(`${baseURL}/api/revalidate`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-revalidate-secret': secret,
-      },
-      body: JSON.stringify({ paths: uniquePaths }),
-    })
-
-    if (!response.ok) {
-      console.error('Page revalidation failed', await response.text())
-    }
-  } catch (error) {
-    console.error('Failed to revalidate page paths', error)
-  }
-}
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -150,24 +92,23 @@ export const Pages: CollectionConfig = {
     singular: 'Страница',
     plural: 'Страницы',
   },
-  hooks: {
-    afterChange: [
-      async ({ doc, previousDoc, req }) => {
-        const locale = normalizeLocale(req.locale)
+ hooks: {
+  afterChange: [
+    async ({ doc, previousDoc, req }) => {
+      const locale = normalizeLocale(req.locale)
 
-        await revalidatePaths([
-          ...getDocPaths(previousDoc as any, locale),
-          ...getDocPaths(doc as any, locale),
-        ])
-      },
-    ],
-    afterDelete: [
-      async ({ doc, req }) => {
-        const locale = normalizeLocale(req.locale)
-        await revalidatePaths(getDocPaths(doc as any, locale))
-      },
-    ],
-  },
+      await revalidatePaths([
+        ...getDocPaths(previousDoc as any),
+        ...getDocPaths(doc as any),
+      ])
+    },
+  ],
+  afterDelete: [
+    async ({ doc }) => {
+      await revalidatePaths(getDocPaths(doc as any))
+    },
+  ],
+},
   access: {
     read: () => true,
   },
